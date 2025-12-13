@@ -1,5 +1,11 @@
+<<<<<<< HEAD
 /data
 .dvc/config.local
 .dvc/tmp
 .dvc/cache
 /models
+=======
+
+
+.venv
+>>>>>>> 8feaf28 (WIP: local changes)

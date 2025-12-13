@@ -1,8 +1,16 @@
+<<<<<<< HEAD
+=======
+# main.py
+>>>>>>> 8feaf28 (WIP: local changes)
 import argparse
 import logging
 import os
 import warnings
 from datetime import datetime
+<<<<<<< HEAD
+=======
+import json
+>>>>>>> 8feaf28 (WIP: local changes)
 
 warnings.filterwarnings('ignore')
 import torch
@@ -11,9 +19,15 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from sklearn.model_selection import KFold
 from src.datasets import Dataset
 from src.cnn import Classifier
+<<<<<<< HEAD
 from src.config import *
 from train import train_classifier, setup_mlflow
 from src.test import test_classifier
+=======
+from src.config import config
+from train import train_classifier, setup_mlflow
+from src.test import test_classifier, test_model_with_thresholds
+>>>>>>> 8feaf28 (WIP: local changes)
 from src.load_ckpts import load_checkpoint
 import mlflow
 
@@ -24,7 +38,53 @@ logging.basicConfig(
 )
 
 
+<<<<<<< HEAD
 def test_with_mlflow(model, test_loader, plots_dir, backbone, freeze_backbone, class_names, device, model_path, use_mlflow=True):
+=======
+def check_dvc_data(data_path):
+    """Check if DVC data is available"""
+    if not os.path.exists(data_path):
+        logging.warning(f"Data path {data_path} not found.")
+        logging.warning("If using DVC, run: dvc pull")
+        return False
+    return True
+
+
+def save_cv_metrics(fold_histories, plots_dir):
+    """Save cross-validation metrics for DVC"""
+    if not fold_histories:
+        return None
+
+    cv_metrics = {
+        "cross_validation": {
+            "num_folds": len(fold_histories),
+            "avg_best_val_loss": sum(h['best_val_loss'] for h in fold_histories) / len(fold_histories),
+            "avg_best_val_accuracy": sum(h['best_val_accuracy'] for h in fold_histories) / len(fold_histories),
+            "fold_details": []
+        }
+    }
+
+    for i, history in enumerate(fold_histories):
+        cv_metrics["cross_validation"]["fold_details"].append({
+            "fold": i + 1,
+            "best_val_loss": history.get('best_val_loss'),
+            "best_val_accuracy": history.get('best_val_accuracy'),
+            "final_epoch": history.get('best_epoch', 0)
+        })
+
+    metrics_path = os.path.join(plots_dir, "cv_metrics.json")
+    os.makedirs(os.path.dirname(metrics_path), exist_ok=True)
+
+    with open(metrics_path, 'w') as f:
+        json.dump(cv_metrics, f, indent=2)
+
+    logging.info(f"Cross-validation metrics saved to: {metrics_path}")
+    return metrics_path
+
+
+def test_with_mlflow(model, test_loader, plots_dir, backbone, freeze_backbone, class_names, device, model_path,
+                     use_mlflow=True):
+>>>>>>> 8feaf28 (WIP: local changes)
     """Test function with optional MLflow logging"""
     if not use_mlflow:
         logging.info("=" * 50)
@@ -67,7 +127,11 @@ def test_with_mlflow(model, test_loader, plots_dir, backbone, freeze_backbone, c
         if test_results and isinstance(test_results, dict):
             # Extract main metrics
             main_metrics = {
+<<<<<<< HEAD
                 "test_accuracy": test_results.get('accuracy', 0) * 100,  # Convert to percentage
+=======
+                "test_accuracy": test_results.get('accuracy', 0) * 100,
+>>>>>>> 8feaf28 (WIP: local changes)
                 "test_loss": test_results.get('test_loss', 0),
                 "test_precision": test_results.get('precision', 0),
                 "test_recall": test_results.get('recall', 0),
@@ -99,6 +163,18 @@ def test_with_mlflow(model, test_loader, plots_dir, backbone, freeze_backbone, c
 
 
 def main(args):
+<<<<<<< HEAD
+=======
+    # Check data availability if DVC is enabled
+    if config.params['dvc']['enabled']:
+        if not check_dvc_data(args.data_path):
+            if args.mode == "train" and args.force:
+                logging.warning("Force flag enabled, continuing without data...")
+            else:
+                logging.error("Data not found. Please run 'dvc pull' to get data.")
+                return
+
+>>>>>>> 8feaf28 (WIP: local changes)
     # Define the data transformation
     transform = transforms.Compose([
         transforms.Resize((224, 224)),
@@ -107,21 +183,38 @@ def main(args):
     ])
 
     # Initialize the CNN model
+<<<<<<< HEAD
     model = Classifier(len(CLASS_NAMES), backbone=BACKBONE, freeze_backbone=FREEZE_BACKBONE)
+=======
+    model = Classifier(
+        len(config.CLASS_NAMES),
+        backbone=config.BACKBONE,
+        freeze_backbone=config.FREEZE_BACKBONE
+    )
+>>>>>>> 8feaf28 (WIP: local changes)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     model.to(device)
 
     logging.info(f"Using device: {device}")
+<<<<<<< HEAD
     logging.info(f"Backbone: {BACKBONE}, Freeze: {FREEZE_BACKBONE}")
     logging.info(f"Number of classes: {len(CLASS_NAMES)}")
     logging.info(f"Classes: {CLASS_NAMES}")
     logging.info(f"MLflow: {'ENABLED' if args.use_mlflow else 'DISABLED'}")
+=======
+    logging.info(f"Backbone: {config.BACKBONE}, Freeze: {config.FREEZE_BACKBONE}")
+    logging.info(f"Number of classes: {len(config.CLASS_NAMES)}")
+    logging.info(f"Classes: {config.CLASS_NAMES}")
+    logging.info(f"MLflow: {'ENABLED' if args.use_mlflow else 'DISABLED'}")
+    logging.info(f"DVC: {'ENABLED' if config.params['dvc']['enabled'] else 'DISABLED'}")
+>>>>>>> 8feaf28 (WIP: local changes)
 
     if args.mode == "train":
         # Load the entire dataset
         dataset = Dataset(root_dir=args.data_path, transform=transform, mode=args.mode)
 
         # Create directories for saving model and plots if they do not exist
+<<<<<<< HEAD
         if not os.path.exists(MODEL_DIR):
             os.makedirs(MODEL_DIR)
         if not os.path.exists(PLOTS_DIR):
@@ -131,6 +224,16 @@ def main(args):
 
         # Define K-fold cross-validation with k=5
         k_folds = 5
+=======
+        os.makedirs(config.MODEL_DIR, exist_ok=True)
+        os.makedirs(config.PLOTS_DIR, exist_ok=True)
+        os.makedirs(config.METRICS_DIR, exist_ok=True)
+
+        criterion = torch.nn.CrossEntropyLoss()
+
+        # Define K-fold cross-validation with k from params
+        k_folds = config.params['train']['k_folds']
+>>>>>>> 8feaf28 (WIP: local changes)
         kfold = KFold(n_splits=k_folds, shuffle=True, random_state=42)
 
         # Log experiment-level parameters to MLflow only if enabled
@@ -139,12 +242,24 @@ def main(args):
             mlflow.log_param("k_folds", k_folds)
             mlflow.log_param("total_samples", len(dataset))
             mlflow.log_param("dataset_path", args.data_path)
+<<<<<<< HEAD
+=======
+            # Log DVC info if enabled
+            if config.params['dvc']['enabled']:
+                mlflow.log_param("dvc_enabled", True)
+                mlflow.log_param("dvc_remote", config.params['dvc']['remote'])
+>>>>>>> 8feaf28 (WIP: local changes)
 
         logging.info("=" * 50)
         logging.info(f"STARTING {k_folds}-FOLD CROSS VALIDATION")
         logging.info(f"Total dataset samples: {len(dataset)}")
+<<<<<<< HEAD
         logging.info(f"Batch size: {BATCH_SIZE}")
         logging.info(f"Max epochs: {MAX_EPOCHS_NUM}")
+=======
+        logging.info(f"Batch size: {config.BATCH_SIZE}")
+        logging.info(f"Max epochs: {config.MAX_EPOCHS_NUM}")
+>>>>>>> 8feaf28 (WIP: local changes)
         logging.info(f"MLflow: {'ENABLED' if args.use_mlflow else 'DISABLED'}")
         logging.info("=" * 50)
 
@@ -163,6 +278,7 @@ def main(args):
             val_subsampler = SubsetRandomSampler(val_ids)
 
             # Define data loaders for training and validation
+<<<<<<< HEAD
             train_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=train_subsampler)
             val_loader = DataLoader(dataset, batch_size=BATCH_SIZE, sampler=val_subsampler)
 
@@ -172,23 +288,48 @@ def main(args):
 
             # Initialize optimizer
             optimizer = torch.optim.Adam(model.parameters(), lr=0.00001)
+=======
+            train_loader = DataLoader(dataset, batch_size=config.BATCH_SIZE, sampler=train_subsampler)
+            val_loader = DataLoader(dataset, batch_size=config.BATCH_SIZE, sampler=val_subsampler)
+
+            # Reinitialize model for each fold
+            model = Classifier(len(config.CLASS_NAMES), backbone=config.BACKBONE,
+                               freeze_backbone=config.FREEZE_BACKBONE)
+            model.to(device)
+
+            # Initialize optimizer with learning rate from params
+            optimizer = torch.optim.Adam(model.parameters(), lr=config.params['train']['learning_rate'])
+>>>>>>> 8feaf28 (WIP: local changes)
 
             # Log fold information
             logging.info(f'''Fold {fold + 1} Details:
     Training size:   {len(train_subsampler)}
     Validation size: {len(val_subsampler)}
+<<<<<<< HEAD
     Backbone:        {BACKBONE}
     Freeze Backbone: {FREEZE_BACKBONE}
     Batch size:      {BATCH_SIZE}
     Epochs:          {MAX_EPOCHS_NUM}
+=======
+    Backbone:        {config.BACKBONE}
+    Freeze Backbone: {config.FREEZE_BACKBONE}
+    Batch size:      {config.BATCH_SIZE}
+    Epochs:          {config.MAX_EPOCHS_NUM}
+    Learning Rate:   {config.params['train']['learning_rate']}
+>>>>>>> 8feaf28 (WIP: local changes)
     Device:          {device}
     MLflow:          {'ENABLED' if args.use_mlflow else 'DISABLED'}
             ''')
 
             # Train the model for this fold
             fold_history = train_classifier(
+<<<<<<< HEAD
                 model, train_loader, val_loader, criterion, optimizer, MAX_EPOCHS_NUM,
                 MODEL_DIR, PLOTS_DIR, device, BACKBONE, FREEZE_BACKBONE,
+=======
+                model, train_loader, val_loader, criterion, optimizer, config.MAX_EPOCHS_NUM,
+                config.MODEL_DIR, config.PLOTS_DIR, device, config.BACKBONE, config.FREEZE_BACKBONE,
+>>>>>>> 8feaf28 (WIP: local changes)
                 fold=fold, use_mlflow=args.use_mlflow
             )
             fold_histories.append(fold_history)
@@ -197,17 +338,34 @@ def main(args):
             if device.type == 'cuda':
                 torch.cuda.empty_cache()
 
+<<<<<<< HEAD
         # Log cross-validation summary
+=======
+        # Log cross-validation summary and save DVC metrics
+>>>>>>> 8feaf28 (WIP: local changes)
         if fold_histories:
             avg_best_val_loss = sum(h['best_val_loss'] for h in fold_histories) / len(fold_histories)
             avg_best_val_accuracy = sum(h['best_val_accuracy'] for h in fold_histories) / len(fold_histories)
 
+<<<<<<< HEAD
+=======
+            # Save DVC metrics
+            cv_metrics_path = save_cv_metrics(fold_histories, config.PLOTS_DIR)
+
+>>>>>>> 8feaf28 (WIP: local changes)
             if args.use_mlflow:
                 mlflow.log_metrics({
                     "cv_avg_best_val_loss": avg_best_val_loss,
                     "cv_avg_best_val_accuracy": avg_best_val_accuracy
                 })
 
+<<<<<<< HEAD
+=======
+                # Log DVC metrics file to MLflow
+                if cv_metrics_path and os.path.exists(cv_metrics_path):
+                    mlflow.log_artifact(cv_metrics_path, "dvc_metrics")
+
+>>>>>>> 8feaf28 (WIP: local changes)
             logging.info('')
             logging.info("=" * 50)
             logging.info("CROSS-VALIDATION SUMMARY")
@@ -218,8 +376,13 @@ def main(args):
             logging.info("=" * 50)
 
     elif args.mode == "test":
+<<<<<<< HEAD
         if not os.path.exists(PLOTS_DIR):
             os.makedirs(PLOTS_DIR)
+=======
+        os.makedirs(config.PLOTS_DIR, exist_ok=True)
+        os.makedirs(config.METRICS_DIR, exist_ok=True)
+>>>>>>> 8feaf28 (WIP: local changes)
 
         # Create the dataset for testing
         testset = Dataset(root_dir=args.data_path, transform=transform, mode=args.mode)
@@ -231,26 +394,66 @@ def main(args):
 
         # Perform testing with optional MLflow logging
         test_results = test_with_mlflow(
+<<<<<<< HEAD
             model, test_loader, PLOTS_DIR, BACKBONE, FREEZE_BACKBONE,
             CLASS_NAMES, device, args.model_path, use_mlflow=args.use_mlflow
         )
 
         if test_results:
+=======
+            model, test_loader, config.PLOTS_DIR, config.BACKBONE, config.FREEZE_BACKBONE,
+            config.CLASS_NAMES, device, args.model_path, use_mlflow=args.use_mlflow
+        )
+
+        if test_results:
+            # Save test metrics for DVC
+            test_metrics_path = os.path.join(config.METRICS_DIR, "test_metrics.json")
+            os.makedirs(os.path.dirname(test_metrics_path), exist_ok=True)
+
+            with open(test_metrics_path, 'w') as f:
+                json.dump(test_results, f, indent=2)
+
+            logging.info(f"Test metrics saved for DVC: {test_metrics_path}")
+
+            # Check thresholds if specified
+            if hasattr(args, 'min_accuracy') and args.min_accuracy:
+                accuracy = test_results.get('accuracy', 0)
+                if accuracy >= args.min_accuracy:
+                    logging.info(f"✓ Accuracy ({accuracy:.2%}) meets threshold ({args.min_accuracy:.2%})")
+                else:
+                    logging.error(f"✗ Accuracy ({accuracy:.2%}) below threshold ({args.min_accuracy:.2%})")
+
+>>>>>>> 8feaf28 (WIP: local changes)
             logging.info("Test completed successfully")
         else:
             logging.error("Test failed or returned no results")
 
 
 if __name__ == "__main__":
+<<<<<<< HEAD
     parser = argparse.ArgumentParser(description="PyTorch Classification with Optional MLflow")
+=======
+    parser = argparse.ArgumentParser(description="PyTorch Classification with DVC & MLflow")
+>>>>>>> 8feaf28 (WIP: local changes)
     parser.add_argument("--mode", type=str, choices=["train", "test"], required=True,
                         help="Mode to run: 'train' or 'test'")
     parser.add_argument("--data_path", type=str, required=True,
                         help="Path to dataset")
+<<<<<<< HEAD
     parser.add_argument("--model_path", type=str, default="./models/",
                         help="Directory to save or load the model")
     parser.add_argument("--use_mlflow", action="store_true",
                         help="Enable MLflow logging (default: False)")
+=======
+    parser.add_argument("--model_path", type=str, default="./models/best_model.pth",
+                        help="Path to load/save the model")
+    parser.add_argument("--use_mlflow", action="store_true",
+                        help="Enable MLflow logging (default: False)")
+    parser.add_argument("--force", action="store_true",
+                        help="Force run even if data check fails (for DVC)")
+    parser.add_argument("--min_accuracy", type=float, default=0.0,
+                        help="Minimum accuracy threshold for test (default: 0.0)")
+>>>>>>> 8feaf28 (WIP: local changes)
 
     args = parser.parse_args()
 
@@ -259,8 +462,14 @@ if __name__ == "__main__":
         logging.error(f"Model path does not exist: {args.model_path}")
         exit(1)
 
+<<<<<<< HEAD
     if not os.path.exists(args.data_path):
         logging.error(f"Data path does not exist: {args.data_path}")
+=======
+    if not os.path.exists(args.data_path) and not args.force:
+        logging.error(f"Data path does not exist: {args.data_path}")
+        logging.info("If using DVC, run: dvc pull")
+>>>>>>> 8feaf28 (WIP: local changes)
         exit(1)
 
     main(args)

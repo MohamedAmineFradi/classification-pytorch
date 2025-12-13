@@ -272,7 +272,11 @@ def train_classifier(model, train_loader, val_loader, criterion, optimizer, num_
             }
             mlflow.log_metrics(final_metrics)
 
+<<<<<<< HEAD
         # Plot loss curves (always save locally)
+=======
+        # Plot loss curves
+>>>>>>> 8feaf28 (WIP: local changes)
         plot_filename = f"{filename}"
         if fold is not None:
             plot_filename += f"_fold_{fold}"
