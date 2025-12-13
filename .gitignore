@@ -1,11 +1,13 @@
-<<<<<<< HEAD
 /data
 .dvc/config.local
 .dvc/tmp
 .dvc/cache
 /models
-=======
-
 
 .venv
->>>>>>> 8feaf28 (WIP: local changes)
+__pycache__/
+*.pyc
+.ipynb_checkpoints
+.vscode/
+.env
+.env.*
